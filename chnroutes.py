@@ -18,6 +18,44 @@ def generate_ovpn(metric):
     print "Usage: Append the content of the newly created routes.txt to your openvpn config file," \
           " and also add 'max-routes %d', which takes a line, to the head of the file." % (len(results)+20)
 
+def generate_linux_iproute2(metric):
+    results = fetch_ip_data()
+    upscript_header=textwrap.dedent("""\
+    #!/bin/bash
+    export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
+    CHNROUTE_PATH="/usr/local/sbin"
+    OLDGW=`ip route show | grep '^default' | sed -e 's/default via \\([^ ]*\\).*/\\1/'`
+    
+    sed -i "s/via \([0-9]\+\.\)\{3\}[0-9]\+/via $OLDGW/g" $CHNROUTE_PATH/iproute2-ip-up.txt
+    
+    ip -batch $CHNROUTE_PATH/iproute2-ip-up.txt
+    
+    """)
+    
+    downscript_header=textwrap.dedent("""\
+    #!/bin/bash
+    export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
+    CHNROUTE_PATH="/usr/local/sbin"
+    
+    ip -batch $CHNROUTE_PATH/iproute2-ip-down.txt
+    
+    """)
+    
+    upfile=open('iproute2-ip-up.sh','w')
+    upipfile=open('iproute2-ip-up.txt','w')
+    downfile=open('iproute2-ip-down.sh','w')
+    downipfile=open('iproute2-ip-down.txt','w')
+    
+    upfile.write(upscript_header)
+    upfile.write('\n')
+    downfile.write(downscript_header)
+    downfile.write('\n')
+    
+    for ip,mask,_ in results:
+        upipfile.write('route add %s/%s via 192.168.1.1\n'%(ip,mask))
+        downipfile.write('route del %s/%s \n'%(ip,mask))
+
+    print "Copy the files whose prefix match iproute2-* to the folder /usr/local/sbin/ "
 
 def generate_linux(metric):
     results = fetch_ip_data()
@@ -247,6 +285,8 @@ if __name__=='__main__':
     
     if args.platform.lower() == 'openvpn':
         generate_ovpn(args.metric)
+    elif args.platform.lower() == 'linux-iproute2':
+        generate_linux_iproute2(args.metric)
     elif args.platform.lower() == 'linux':
         generate_linux(args.metric)
     elif args.platform.lower() == 'mac':
