@@ -43,7 +43,7 @@ def generate_linux_iproute2(metric):
     down_rules = ""
 
     for ip,mask,mask2 in results:
-        up_rules += 'route add %s/%s via ${OLDGW}\n' % (ip,mask2)
+        up_rules += 'route add %s/%s via $OLDGW\n' % (ip,mask2)
         down_rules += 'route del %s/%s \n' % (ip,mask2)
 
     up_content = up_template.format(rules = up_rules)
