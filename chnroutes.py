@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-import urllib2
+import urllib3
 import sys
 import argparse
 import math
@@ -14,8 +14,8 @@ def generate_ovpn(metric):
         route_item="route %s %s net_gateway %d\n"%(ip,mask,metric)
         rfile.write(route_item)
     rfile.close()
-    print "Usage: Append the content of the newly created routes.txt to your openvpn config file," \
-          " and also add 'max-routes %d', which takes a line, to the head of the file." % (len(results)+20)
+    print("Usage: Append the content of the newly created routes.txt to your openvpn config file," \
+          " and also add 'max-routes %d', which takes a line, to the head of the file." % (len(results)+20))
 
 def generate_linux_iproute2(metric):
     results = fetch_ip_data()
@@ -55,7 +55,7 @@ def generate_linux_iproute2(metric):
     upfile.write(up_content)
     downfile.write(down_content)
 
-    print "Copy the files whose prefix match iproute2-* to the folder /usr/local/sbin/ "
+    print("Copy the files whose prefix match iproute2-* to the folder /usr/local/sbin/ ")
 
 def generate_linux(metric):
     results = fetch_ip_data()
@@ -98,8 +98,8 @@ def generate_linux(metric):
     downfile.write('rm /tmp/vpn_oldgw\n')
 
 
-    print "For pptp only, please copy the file ip-pre-up to the folder/etc/ppp," \
-          "and copy the file ip-down to the folder /etc/ppp/ip-down.d."
+    print("For pptp only, please copy the file ip-pre-up to the folder/etc/ppp," \
+          "and copy the file ip-down to the folder /etc/ppp/ip-down.d.")
 
 def generate_mac(metric):
     results=fetch_ip_data()
@@ -108,7 +108,7 @@ def generate_mac(metric):
     #!/bin/sh
     export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
 
-    OLDGW=`netstat -nr | grep '^default' | grep -v 'ppp' | sed 's/default *\\([0-9\.]*\\) .*/\\1/' | awk '{if($1){print $1}}'`
+    OLDGW=`netstat -nr | grep '^default' | grep -v 'ppp' | sed 's/default *\\([0-9\.]*\\) .*/\\1/' | awk '{if($1){print($1)}}'`
 
     if [ ! -e /tmp/pptp_oldgw ]; then
         echo "${OLDGW}" > /tmp/pptp_oldgw
@@ -152,8 +152,8 @@ def generate_mac(metric):
     upfile.close()
     downfile.close()
 
-    print "For pptp on mac only, please copy ip-up and ip-down to the /etc/ppp folder," \
-          "don't forget to make them executable with the chmod command."
+    print("For pptp on mac only, please copy ip-up and ip-down to the /etc/ppp folder," \
+          "don't forget to make them executable with the chmod command.")
 
 def generate_win(metric):
     results = fetch_ip_data()
@@ -187,8 +187,8 @@ def generate_win(metric):
 #    down_vbs_wrapper.write('Set objShell = CreateObject("Wscript.shell")\ncall objShell.Run("vpndown.bat",0,FALSE)')
 #    down_vbs_wrapper.close()
 
-    print "For pptp on windows only, run vpnup.bat before dialing to vpn," \
-          "and run vpndown.bat after disconnected from the vpn."
+    print("For pptp on windows only, run vpnup.bat before dialing to vpn," \
+          "and run vpndown.bat after disconnected from the vpn.")
 
 def generate_android(metric):
     results = fetch_ip_data()
@@ -200,7 +200,7 @@ def generate_android(metric):
     alias awk='/system/xbin/busybox awk'
     alias route='/system/xbin/busybox route'
 
-    OLDGW=`netstat -rn | grep ^0\.0\.0\.0 | awk '{print $2}'`
+    OLDGW=`netstat -rn | grep ^0\.0\.0\.0 | awk '{print($2)}'`
 
     """)
 
@@ -225,15 +225,18 @@ def generate_android(metric):
     upfile.close()
     downfile.close()
 
-    print "Old school way to call up/down script from openvpn client. " \
-          "use the regular openvpn 2.1 method to add routes if it's possible"
+    print("Old school way to call up/down script from openvpn client. " \
+          "use the regular openvpn 2.1 method to add routes if it's possible")
 
 
 def fetch_ip_data():
     #fetch data from apnic
-    print "Fetching data from apnic.net, it might take a few minutes, please wait..."
+    print("Fetching data from apnic.net, it might take a few minutes, please wait...")
     url=r'https://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest'
-    data=urllib2.urlopen(url).read()
+
+    http = urllib3.PoolManager()
+    response = http.request("GET", url)
+    data=response.data.decode('utf-8')
 
     cnregex=re.compile(r'apnic\|cn\|ipv4\|[0-9\.]+\|[0-9]+\|[0-9]+\|a.*',re.IGNORECASE)
     cndata=cnregex.findall(data)
