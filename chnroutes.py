@@ -22,7 +22,7 @@ def generate_linux_iproute2(metric):
     up_template = textwrap.dedent("""\
     #!/bin/bash
     export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
-    OLDGW=`ip route show | grep '^default' | sed -e 's/default via \\([^ ]*\\).*/\\1/'`
+    OLDGW=`ip -4 route show | grep '^default' | awk '{{print($3)}}'`
 
     ip -batch - <<EOF
     {rules}
@@ -63,7 +63,7 @@ def generate_linux(metric):
     #!/bin/bash
     export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
 
-    OLDGW=`ip route show | grep '^default' | sed -e 's/default via \\([^ ]*\\).*/\\1/'`
+    OLDGW=`ip -4 route show | grep '^default' | awk '{{print($3)}}'`
 
     if [ $OLDGW == '' ]; then
         exit 0
@@ -108,7 +108,7 @@ def generate_mac(metric):
     #!/bin/sh
     export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
 
-    OLDGW=`netstat -nr | grep '^default' | grep -v 'ppp' | sed 's/default *\\([0-9\.]*\\) .*/\\1/' | awk '{if($1){print($1)}}'`
+    OLDGW=`netstat -nr -f inet | grep '^default' | awk '{{print($2)}}'`
 
     if [ ! -e /tmp/pptp_oldgw ]; then
         echo "${OLDGW}" > /tmp/pptp_oldgw
@@ -200,7 +200,7 @@ def generate_android(metric):
     alias awk='/system/xbin/busybox awk'
     alias route='/system/xbin/busybox route'
 
-    OLDGW=`netstat -rn | grep ^0\.0\.0\.0 | awk '{print($2)}'`
+    OLDGW=`netstat -rn | grep '^0.0.0.0' | awk '{{print($2)}}'`
 
     """)
 
@@ -299,5 +299,5 @@ if __name__=='__main__':
     elif args.platform.lower() == 'android':
         generate_android(args.metric)
     else:
-        print>>sys.stderr, "Platform %s is not supported."%args.platform
+        print("Platform %s is not supported."%args.platform, file=sys.stderr)
         exit(1)
